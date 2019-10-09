@@ -2,20 +2,36 @@ provider "aws" {
   region = "us-east-1"
 }
 
-resource "aws_instance" "example" {
-  ami = "ami-04b9e92b5572fa0d1"
+# Launch configuration for the Auto scaling group
+resource "aws_launch_configuration" "launch-config" {
+  image_id  = "ami-04b9e92b5572fa0d1"
   instance_type = "t2.micro"
-  vpc_security_group_ids = [aws_security_group.terraform-sg.id]
-
-  tags = {
-    Name = "terraform-example"
-  }
+  security_groups = [aws_security_group.terraform-sg.id]
 
   user_data = <<-EOF
               #!/bin/bash
               echo "Hello, World!!!" > index.html
               nohup busybox httpd -f -p ${var.server_port} &
               EOF
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+
+resource "aws_autoscaling_group" "web-asg" {
+  launch_configuration = aws.launch_configuration.launch-config.name
+  vpc_zone_identifier = aws.subnet_ids.default.ids
+
+  min_size = 2
+  max_size = 10
+
+  tag {
+    key = "Name"
+    value = "terraform-asg-example"
+    propagate_at_launch = true
+  }
 }
 
 resource "aws_security_group" "terraform-sg" {
@@ -28,6 +44,14 @@ resource "aws_security_group" "terraform-sg" {
     protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+}
+
+data "aws_vpc" "default" {
+  default = true
+}
+
+data "aws_subnet_ids" "default" {
+  vpc_id = data.aws_vpc.default.id
 }
 
 variable "server_port" {
