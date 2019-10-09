@@ -61,8 +61,8 @@ resource "aws_security_group" "alb" {
   name = "terraform-example-alb"
 
   ingress {
-    from_port = var.alb_port
-    to_port = var.alb_port
+    from_port = var.alb_port_inbound
+    to_port = var.alb_port_inbound
     protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -93,7 +93,7 @@ resource "aws_lb_target_group" "web-target" {
 }
 
 resource "aws_autoscaling_group" "web-asg" {
-  launch_configuration = aws.launch_configuration.launch-config.name
+  launch_configuration = aws_launch_configuration.launch-config.name
   vpc_zone_identifier = data.aws_subnet_ids.default.ids
 
   target_group_arns = [aws_lb_target_group.web-target.arn]
