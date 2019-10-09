@@ -42,6 +42,21 @@ resource "aws_lb_listener" "http" {
   }
 }
 
+resource "aws_lb_listener_rule" "asg-listener" {
+  listener_arn = aws_lb_listener.http.arn
+  priority = 100
+
+  condition {
+    field = "path-pattern"
+    values = ["*"]
+  }
+
+  action {
+    type = "forward"
+    target_group_arn = aws_lb_target_group.web-target.arn
+  }
+}
+
 resource "aws_security_group" "alb" {
   name = "terraform-example-alb"
 
@@ -132,7 +147,7 @@ variable "alb_port_outbound" {
   default = 0
 }
 
-output "public_ip" {
-  value = aws_instance.example.public_ip
-  description = "The public IP address of the web server"
+output "alb_dns_name" {
+  value = aws_lb.web-lb.dns_name
+  description = "The domain name of the load balancer"
 }
